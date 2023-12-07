@@ -1,0 +1,264 @@
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Random;
+
+//so the class Frame extends java's jFrame which means it inherits all the properties of jFrame as a subclass
+//It implements the interface of ActionListener and KeyListener which we are adding to this Frame
+//now lets set our JFrame properties
+public class Frame extends JFrame implements ActionListener, KeyListener 
+{
+	
+	private static final long serialVersionUID = 1L;
+	String passage=""; //passage we get
+	String typedPass=""; //passage the user types
+	String message=""; //message to display at the end of the typingtest
+	
+	int typed=0; //typed stores till which character the user has typed
+	int count=0;
+	int WPM;
+	
+	double start; //start time
+	double end; //end time
+	double elapsed; //end-start=elapsed time
+	double seconds; //elapsed time in seconds
+	
+	boolean running; //if the person is typing 
+	boolean ended; //whether the typing test has ended or not 
+	final int SCREEN_WIDTH;
+	final int SCREEN_HEIGHT;
+	final int DELAY=100; //in milliseconds
+	//Lets add the function's we need
+	//first the constructor
+	
+	JButton button;
+	Timer timer;
+	JLabel label;
+	
+	public Frame()
+	{
+		this.setLayout(new BorderLayout());
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE ); //this is very important,closes the window when the cross button on the top right is clicked
+		// we need two variables for screen width and height
+		SCREEN_WIDTH=720;
+		SCREEN_HEIGHT=400;
+		this.setSize(SCREEN_WIDTH,SCREEN_HEIGHT);
+		this.setVisible(true); //to make the frame visible
+		this.setLocationRelativeTo(null); //renders the frame in the center of the screen
+		
+		button=new JButton("Start");
+		button.setFont(new Font("MV Boli",Font.BOLD,30));
+		button.setForeground(Color.BLACK);
+		button.setVisible(true);
+		button.addActionListener(this);
+		button.setFocusable(false); //this removes the line of focus from the button which is a box made of dashes and also looks bad
+		
+		label=new JLabel();
+		label.setText("Click the Start Button");
+		label.setFont(new Font("MV Boli",Font.BOLD,30));
+		label.setVisible(true);
+		label.setOpaque(true);
+		label.setHorizontalAlignment(JLabel.CENTER); //Aligns text in center
+		label.setBackground(Color.lightGray);
+		
+		this.add(button, BorderLayout.SOUTH); //adding button to frame at the south of it means at the bottom of the frame
+		this.add(label,BorderLayout.NORTH);
+		this.getContentPane().setBackground(Color.WHITE);
+		this.addKeyListener(this);
+		this.setFocusable(true); //This is important as if the frame is not in focus then it will not catch the keys pressed
+		this.setTitle("Typing Test");
+		this.revalidate(); //this refreshes all the components to load the frame again
+		//no
+		
+	}
+	//Java has an in built method called paint which we can use for 2nd graphics we will now declare that
+	@Override //override basically means that this function is active all the time and can perform what it has to do above other functions too
+	public void paint(Graphics g)
+	{
+		super.paint(g);
+		draw(g); //calling draw function
+	}
+	public void draw(Graphics g)
+	{
+		g.setFont(new Font("MV Boli",Font.BOLD,25)); //font for graphics which is going to be our text
+		
+		if(running)
+		{
+			if(passage.length()>1) //we dont want the program trying to display substrings when the passage is empty it will give an error
+			{
+				g.drawString(passage.substring(0,50), g.getFont().getSize(),g.getFont().getSize()*5);
+				g.drawString(passage.substring(50,100), g.getFont().getSize(),g.getFont().getSize()*7);
+				g.drawString(passage.substring(100,150), g.getFont().getSize(),g.getFont().getSize()*9);
+				g.drawString(passage.substring(150,200), g.getFont().getSize(),g.getFont().getSize()*11);
+			}
+			
+			g.setColor(Color.GREEN);
+			if(typedPass.length()>0)
+			{
+				if(typed<50) 
+					g.drawString(typedPass.substring(0,typed),g.getFont().getSize(),g.getFont().getSize()*5);
+				else
+					g.drawString(typedPass.substring(0,50),g.getFont().getSize(),g.getFont().getSize()*5);
+				
+			}
+			if(typedPass.length()>50)
+			{
+				if(typed<100) 
+					g.drawString(typedPass.substring(50,typed),g.getFont().getSize(),g.getFont().getSize()*7);
+				else
+					g.drawString(typedPass.substring(50,100),g.getFont().getSize(),g.getFont().getSize()*7);
+			}
+			if(typedPass.length()>100)
+			{
+				if(typed<150) 
+					g.drawString(typedPass.substring(100,typed),g.getFont().getSize(),g.getFont().getSize()*9);
+				else
+					g.drawString(typedPass.substring(100,150),g.getFont().getSize(),g.getFont().getSize()*9);
+			}
+			if(typedPass.length()>150)
+				g.drawString(typedPass.substring(150,typed),g.getFont().getSize(),g.getFont().getSize()*11);
+			running=false;
+			
+		}
+		if(ended)
+		{
+			if(WPM<=40)
+				message="you are an Average Typist";
+			else if(WPM>40 && WPM<=60)
+				message="you are a good typist";
+			else if(WPM>60 && WPM<=100)
+				message="you are an excellent typist";
+			else
+				message="you are an elite typist";
+			
+			FontMetrics Metrics=getFontMetrics(g.getFont());
+			g.setColor(Color.BLUE);
+			g.drawString("Typing Test Completed!", (SCREEN_WIDTH-Metrics.stringWidth("Typing Test Completed!"))/2, g.getFont().getSize()*6);
+			
+			g.setColor(Color.BLACK);
+			g.drawString("Typing Speed:" +WPM+"Words Per Minute",(SCREEN_WIDTH-Metrics.stringWidth("Typing Speed:"+WPM+"Words Per Minute"))/2, g.getFont().getSize()*9);
+			g.drawString(message,(SCREEN_WIDTH-Metrics.stringWidth(message))/2, g.getFont().getSize()*11);
+			
+			timer.stop();
+			ended=false;
+			
+		}
+	}
+    @Override
+	public void keyTyped(KeyEvent e) //keytyped uses the key character which can identify capital and lowercase difference in keypressed it takes unicode soit also considers shift which creates a problem
+	{
+		if(passage.length()>1)
+		{
+			if(count==0)
+				start=LocalTime.now().toNanoOfDay();
+			else if(count==200)
+			{
+				end=LocalTime.now().toNanoOfDay();
+				elapsed=end-start;
+				seconds=elapsed/1000000000.0;
+				WPM=(int) (((200.0/5)/seconds)*60);
+				ended=true;
+				running=false;
+				count++;
+			}
+			char[] pass=passage.toCharArray();
+			if(typed<200)
+			{
+				running=true;
+				if(e.getKeyChar()==pass[typed]) //typed is an int maintaining the index of what is currently typed 
+				{
+					typedPass=typedPass+pass[typed]; //to the typed passage we are adding what is currently typed
+					typed++;
+					count++; //count will be used for the time taken for typing the test whivh we are going to see later on
+				} //if the typed character is not equal to the current position it will not add it to the typedpassage, so the user needs to type the right thing
+			}
+		}
+		
+	}
+
+	@Override
+	public void keyPressed(KeyEvent e)
+	{
+
+		
+	}
+
+	@Override
+	public void keyReleased(KeyEvent e) 
+	{
+		
+		
+	}
+
+     //over here we have actionperformed function which will be for our start button as well as checking the text at regular intervals which we will do using time class
+	//Timer class performs the flow of events at particular intervals known as delay
+	@Override
+	public void actionPerformed(ActionEvent e) 
+	{
+		if(e.getSource()==button) //if the button is clicked
+		{
+			passage=getPassage();
+			timer=new Timer(DELAY,this);
+			timer.start();
+			running=true;
+			ended=false;
+			
+			//when start button is pressed it resets all the values
+			typedPass="";
+			message="";
+			
+			typed=0;
+			count=0;
+			
+		}
+		if(running)
+			repaint(); //repaint erases everything on the screen and draws it again at the interval of timer which is important for animation effects
+		if(ended)
+			repaint();
+		
+	}
+	public static String getPassage() //to get passage we will display in our test
+	{
+		ArrayList<String> Passages=new ArrayList<String>();
+		String pas1="income before securities transactions was up 10.8 percent from $13.49 million in 1982 to $14.95 million iin 1983. earings per share (adjusted for a 10.5 percent stock divided distributed on august 26";
+		String pas2="proofreader applicants are tested primarily on their spelling ,speed, and skill in finding errors in the sample text.toward that end,they may be given a list of ten or twenty classically difficult ";
+		String pas3="Mahatma Gandhi (born October 2, 1869, Porbandar, India—died January 30, 1948, Delhi) Indian lawyer, politician, social activist, and writer who became the leader of the nationalist moving towaRds th";
+		String pas4="The machine was about a century ahead of its time. All the parts for his machine had to be made by hand – this was a major problem for a device with thousands of parts. Eventually, the device of 100";
+		String pas5="Early digital computers were electromechanical; electric switches drove mechanical relays to perform the calculation. These devices had a low operating speed and were eventually super class and speed";
+		String pas6="Zuse's next computer, the Z4, became the world's first commercial computer; after initial delay due to the Second World War, it was completed in 1950 and delivered to the ETH Zurich.[the computer is";
+		String pas7="The control unit (often called a control system or central controller) manages the computer's various components; it reads and interprets (decodes) the program instructions, transform the instructio";
+		String pas8="Since the program counter is (conceptually) just another set of memory cells, it can be changed by calculations done in the ALU. Adding 100 to the program counter would cause the next the way program";
+		String pas9="Some computers are designed to distribute their work across several CPUs in a multiprocessing configuration, a technique once employed in only large and powerful machines such as super machines was a";
+		String pas10="Programming languages provide various ways of specifying programs for computers to run. Unlike natural languages, programming languages are designed to permit no ambiguity and to be computer a very";
+		
+		Passages.add(pas1);
+		Passages.add(pas2);
+		Passages.add(pas3);
+		Passages.add(pas4);
+		Passages.add(pas5);
+		Passages.add(pas6);
+		Passages.add(pas7);
+		Passages.add(pas8); //adding all passages into an arraylist of strings
+		Passages.add(pas9);
+		Passages.add(pas10);
+		
+		Random rand=new Random();
+		int place=(rand.nextInt(10)); //getting a random position from 0 to 9 to get a passage at random
+		
+		String toReturn=Passages.get(place).substring(0,200); //we are going to use 200 characters in our typing test so i am taking a substring of that passage from 0 to 200
+		if(toReturn.charAt(199)==32) //if the last character is a black space(unicode=32)
+		{
+			toReturn=toReturn.strip(); //removing the blank spaces before the after the substring we have taken
+			toReturn=toReturn+"."; //adding the full stop at the last instead of a space
+		}
+		return(toReturn); //we have got our passage! YES!
+		
+class Main {
+    public static void main(String args[]) {
+        new Frame();
+}
+}
+    
